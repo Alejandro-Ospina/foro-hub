@@ -293,26 +293,26 @@ Spring Devtools es una dependencia importante que nos proporciona visualización
 Para crear un usuario se debe enviar un json en el cuerpo de la solicitud con la siguiente estructura
 
 ```http
-   POST /usuarios/registrar
-   {
-      "nombre": "nombre",
-      "email": "correo",
-      "pass": "pass",
-      "perfiles": [
-          {
-              "nombre": "perfil1"
-          },
-          {
-              "nombre": "perfil2"
-          },
-          {
-              "nombre": "perfil3"
-          }
-       ]
-    }
-   ```
+POST /usuarios/registrar
+{
+    "nombre": "nombre",
+    "email": "correo",
+    "pass": "pass",
+    "perfiles": [
+        {
+            "nombre": "perfil1"
+        },
+        {
+            "nombre": "perfil2"
+        },
+        {
+            "nombre": "perfil3"
+        }
+    ]
+}
+```
 
-La solcitud es procesada en el siguiente método, el cual llama al servicio para crear al usuario. Si el usuario se crea sin problema, se devuelve un json que informa al usuario sobre la creación exitosa del registro en la DB.
+La solicitud es procesada en el siguiente método, el cual valida los campos de entrada, y llama al servicio para crear al usuario. Si el usuario se crea sin problema, se devuelve un json que informa al usuario sobre la creación exitosa del registro en la DB.
 
    ```Java
     @PostMapping("/registrar")
@@ -327,14 +327,232 @@ La solcitud es procesada en el siguiente método, el cual llama al servicio para
     }
    ```
 
-2. **Inicio de Sesión**: Al iniciar sesión, se genera un token JWT:
-   ```http
-   POST /usuarios/login
-   {
-       "email": "correo",
-       "password": "pass"
-   }
+Cuando el controlador invoca el servicio, este se encarga de validar si el usuario existe. En caso contrario, se procede con el mapeo entidad-dto, se encripta la contraseña con el algortimo de hash Bcrypt, y se guarda el registro en la base de datos.
+
+   ```Java
+    @Override
+    public void crearUsuario(UsuarioDTO usuarioDTO) {
+        validar.forEach(validar -> validar.validar(usuarioDTO));
+
+        Usuario usuario = mapper.dtoToEntity(usuarioDTO);
+        usuario.setPass(encoder.encode(usuario.getPass()));
+        usuario.setActivo(true);
+
+        usuarioRepository.save(usuario);
+    }
    ```
+
+### Actualizar usuario
+
+Para actualizar un usuario se debe enviar un json el endpoint mostrado, y con la estructura:
+
+```http
+POST /usuarios/{id}
+{
+    "nombre": "Pedro aurelio ospina benitez",
+    "email": "pedro8765@gmail.com",
+    "perfiles": [
+        {
+            "nombre": "dev80006"
+        },
+        {
+            "nombre": "alejo1000"
+        },
+        {
+            "nombre": "orco67999123"
+        }
+    ]
+}
+```
+
+La información se procesa en el siguiente método, el cual recibe de manera adicional la información del usuario auitenticado.
+
+    ```Java
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateRegister(@RequestBody @Valid ActualizarUsuarioDto dto,
+                                            @PathVariable @Positive Long id,
+                                            Authentication authentication) throws PermissionDeniedException {
+        usuarioService.actualizarUsuario(dto, id, authentication);
+
+        return ResponseEntity.ok(new ResponseEntityDto(
+                LocalDateTime.now(),
+                HttpStatus.OK.value(),
+                "Usuario actualizado correctamente."
+        ));
+    }
+    ```
+
+El método, invoca el servicio, y este se encarga de validar; además de la existencia del usuario, si los datos que se van a actualizar son del usuario autenticado, es decir, propietario. En caso contrario, se le denegará el permiso de edición, ya que a nivel de lógica un usuario mo puede editar datos de otros dominio.
+
+    ```Java
+    @Override
+    @Transactional
+    public void actualizarUsuario(ActualizarUsuarioDto dto,
+                                  Long id,
+                                  Authentication authentication) throws PermissionDeniedException {
+        Usuario usuarioAutenticado = (Usuario) authentication.getPrincipal();
+
+        Usuario usuario = usuarioRepository.findById(id).orElseThrow(
+                () -> new EntityNotFoundException("No se encontró un usuario con id: " + id)
+        );
+
+        if (!Objects.equals(usuario.getId(), usuarioAutenticado.getId())){
+            throw new PermissionDeniedException("No tiene permiso para editar el usuario");
+        }
+
+        mapper.updateEntityFromDto(dto, usuario);
+    }
+    ```
+
+### Eliminar usuario
+
+Para eliminar un usuario, simplemente se envía una solicitud de tipo `delete` al endpoint `/usuarios`, y el siguiente método la procesará:
+
+    ```Java
+    @Override
+    @DeleteMapping("/eliminar")
+    public ResponseEntity<?> deleteRegister(Authentication authentication) {
+        usuarioService.eliminarUsuario(authentication);
+
+        return ResponseEntity.ok(new ResponseEntityDto(
+                LocalDateTime.now(),
+                HttpStatus.ACCEPTED.value(),
+                "Usuario dado de baja correctamente."
+        ));
+    }
+    ```
+
+El controlador invoca el servicio de usuarios, y este eliminará lógicamente el registro en la base de datos. Nótese que no es necesario enviar un id específico, ya que el único parámetro es el usuario autenticado, es decir, un usuario no puede eliminar registro de otros usuarios, solo es posible los de su autoría. 
+
+    ```Java
+    @Override
+    @Transactional
+    public void eliminarUsuario(Authentication authentication) {
+        Usuario usuario = usuarioRepository.findByNombre(authentication.getName()).orElseThrow(
+                () -> new EntityNotFoundException("No se ha encontrado el usuario: " + authentication.getName())
+        );
+
+        usuario.setActivo(false);
+    }
+    ```
+
+### Ingreso de usuarios
+
+Para el ingreso de usuarios a recursos protegidos, se debem enviar las siguientes credenciales al siguiente endpoint con la siguiente estructura json:
+
+```http
+POST /usuarios/login
+{
+    "email": "ejemplo@gmail.com",
+    "password": "pass"
+}
+```
+
+La solicitud es recibida en el siguiente método, el cual se encarga de crear una instancia de autenticación con el correo y contraseña pasados en el cuerpo de la solicitud.
+
+    ```Java
+    @PostMapping("/login")
+    public ResponseEntity<?> inicioSesion(@RequestBody @Valid LoginDto loginDto){
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                loginDto.email(),
+                loginDto.password()
+        );
+
+        var usuario = authenticationManager.authenticate(authentication);
+        var token = jwtService.obtenerToken((Usuario) usuario.getPrincipal());
+
+        return ResponseEntity.ok(new TokenDTO(usuario.getName(), token));
+    }
+    ```
+
+Luego, el administrador de autenticación busca si coincide el correo y la contraseña con el registro de la DB, y crea una instancia de usuario autenticado. Posteriormente, se obtiene un token del usuario autenticado por medio del servicio JWT, y se devuelve en la respuesta del método un json con la información del token generado.
+
+### Generación del token de autenticación con JWT
+
+Cuando el controlador de inicio de sesión hace llamado al servicio JWT, este se encarga de procesar la información del usuario (id, nombre y correo electrónico) y la compacta en una cadena de caracteres de 512 bits. Cabe aclarar que pueden anexarse mas claims en el payload del jwt dependiendo del caso.
+
+    ```Java
+    @Override
+    public String obtenerToken(Usuario usuario) {
+        return Jwts.builder()
+                .issuer("Alejandro")
+                .subject(usuario.getEmail())
+                .claim("id", usuario.getId())
+                .claim("nombre", usuario.getNombre())
+                .issuedAt(Date.from(Instant.now()))
+                .expiration(Date.from(Instant.now().plusSeconds(3600)))
+                .signWith(getKeyEncoded(), Jwts.SIG.HS512)
+                .compact();
+    }
+    ```
+
+Además, se define un tiempo de expiración de una hora, y se debe definir una clave de mínimo 64 caracteres `UTF_8` la cual se firma con un algoritmo hashing de 512 bits. Finalmente, se compacta el token generado y se devuelve en la llamada del método.
+
+**Nota:** Para este proyecto se debe definir una clave mayor o igual a 64 caracteres debido a que la firma se hace con un algoritmo de firma `HS512`.
+
+### Validación del token
+
+En el contexto de autenticación por medio de tokens, es escencial verificar si un token es válido o no. `jjwt` Nos proporciona una serie de herramientas que nos permite validar el origen de un token tal y como se muestra en el siguiente método:
+
+    ```Java
+    @Override
+    public Boolean tokenValido(String token) {
+        Claims claims;
+        try{
+            claims = Jwts.parser()
+                    .verifyWith(getKeyEncoded())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            return claims.getExpiration().after(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+    ```
+
+Lo primero que se debe hacer es verificar la firma del token, y para ello, pasamos en el argumento del método `verifyWith()` la clave con la cual hemos firmado nuestros tokens. Si no lanza una excepción, se construye un objeto vacío con los claims declarados en la construcción del token. Posteriormente se llena la información de los claims con el token recibido, y se obtiene el payload completo del token. Si hasta este punto no se ha lanzado una excepción, entonces se puede afirmar parcialmente que el token es confiable. 
+
+Para que nuestro token no sea parcialmente válido, debemos corroborar que no ha expirado, y solo es allí cuando podemos confiar en el origen del token. Es por ello que se necesita obtener los claims del token, ya que así podemos extraer la fecha de expiración y compararla con el instante en que se consulta. De esa forma, retornamos un valor verdaero; y, si en algún momento atrapa una excepción, entonces no podemos confiar en el origen del token.
+
+* **Nota:** Es importante aclarar que si bien, este proceso es básico, refleja una de muchas formas de trabajar con Jwt. Es importante que usted como lector verifique la documentación oficial de los proveedores, y haga su propia implementación de acuerdo a sus necesidades.
+
+### Obtención del subject, o sujeto
+
+Cuando se estructura un jwt, es importante definir dinámicamenre aquello que se va a declarar como subject, o sujeto del token. En este caso, el subject definido es el correo electrónico de usuario, pues, además de ser único por usuario, es un estándar en el inicio de sesión en la gran mayoria de aplicaciones existentes.
+
+    ```Java
+    @Override
+    public String obtenerSujeto(String token) {
+        if(token == null || token.isEmpty()) throw new TokenNullException("El token es vacío o nulo.");
+
+        String sujeto;
+        try{
+            return Jwts.parser()
+                    .verifyWith(getKeyEncoded())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getSubject();
+        } catch (JwtException e) {
+            throw new TokenInvalidException("No se ha obtenido el sujeto debido a token no válido.");
+        }
+    }
+    ```
+
+El primer paso es verificar si el token que ingresa es nulo o vacío. Comprobado lo anterior, se sigue un proceso bastante parecido a la [validación del token](#validacion-del-token), solo que en este caso cuando obtenemos el payload, devolvemos el subject.
+
+### Configuración de la clave secreta
+
+La clave secreta, definida previamente como variable de entorno `SECRET`, debe ser una cadena de caracteres con longitud mínima de 64. Esta clave no debe ingresar de forma directa en la firma del algoritmo definido en la firma, sino que debe ser convertida a un arreglo de bytes en su representación `UTF_8`, y encriptada por un algoritmo `HMAC`.
+
+    ```Java
+    private SecretKey getKeyEncoded(){
+        return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+    }
+    ```
+
 3. **Autorización**: Todas las solicitudes protegidas requieren el token en el encabezado `Authorization`:
    ```http
    Authorization: Bearer <token>
@@ -342,9 +560,8 @@ La solcitud es procesada en el siguiente método, el cual llama al servicio para
 
 ### Filtro de Autenticación e Interceptores
 
-El filtro de autenticación verifica el token JWT y determina si el usuario tiene permisos. Además, los interceptores validan si el usuario es propietario del recurso solicitado.
+Antes de realizar cualquier petición a la API, se debe configurar un filtro de autenticación donde se valida el JWT, y se determina si el usuario está activo. 
 
-**Filtro de Autenticación:**
 ```java
 @Component
 @RequiredArgsConstructor
@@ -382,12 +599,6 @@ public class AuthenticationFilter implements Filter {
     }
 ```
 
-**Validación de Propietario:**
-```java
-if (!recurso.getPropietario().equals(usuarioAutenticado)) {
-    throw new AccessDeniedException("No tiene permisos para editar este recurso.");
-}
-```
 
 ---
 
