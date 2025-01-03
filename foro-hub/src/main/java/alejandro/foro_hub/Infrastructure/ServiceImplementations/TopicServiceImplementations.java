@@ -63,7 +63,7 @@ public class TopicServiceImplementations implements TopicService {
         );
 
         if (!topico.getAutor().getUsername().equals(authentication.getName())){
-            throw new PermissionDeniedException("No tiene permisos para editar el topico");
+            throw new PermissionDeniedException("No tiene permisos para eliminar el topico");
         }
 
         topicoRepository.delete(topico);
