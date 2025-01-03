@@ -4,20 +4,20 @@ Foro Hub Alura es una API desarrollada como parte de un reto formativo proporcio
 
 ## Índice de Contenidos
 
-1. [Tecnologías Usadas](#tecnologias-usadas)
-2. [Configuración del Proyecto](#configuracion-del-proyecto)
-3. [Configuración de Variables de Entorno](#configuracion-de-variables-de-entorno)
-4. [Configuración de la Base de Datos PostgreSQL](#configuracion-de-la-base-de-datos-postgresql)
+1. [Tecnologías Usadas](#tecnologías-usadas)
+2. [Configuración del Proyecto](#configuración-del-proyecto)
+3. [Configuración de Variables de Entorno](#configuración-de-variables-de-entorno)
+4. [Configuración de la Base de Datos PostgreSQL](#configuración-de-la-base-de-datos-postgresql)
 5. [Dependencias Necesarias](#dependencias-necesarias)
 6. [Usuarios](#usuarios)
-7. [Tópicos](#topicos)
+7. [Tópicos](#tópicos)
 8. [Respuestas y Cursos](#respuestas-y-cursos)
-9. [Ejecución del JAR en Local](#ejecucion-del-jar-en-local)
+9. [Ejecución del JAR en Local](#ejecución-del-jar-en-local)
 10. [Agradecimientos](#agradecimientos)
 
 ---
 
-## Tecnologías usadas
+## Tecnologías Usadas
 
 El proyecto utiliza una serie de herramientas y tecnologías modernas para garantizar un desarrollo robusto y escalable:
 
@@ -489,7 +489,7 @@ Además, se define un tiempo de expiración de una hora, y se debe definir una c
 
 **Nota:** Para este proyecto se debe definir una clave mayor o igual a 64 caracteres debido a que la firma se hace con un algoritmo de firma `HS512`.
 
-### Validación del token
+### Validación del Token
 
 En el contexto de autenticación por medio de tokens, es escencial verificar si un token es válido o no. `jjwt` Nos proporciona una serie de herramientas que nos permite validar el origen de un token tal y como se muestra en el siguiente método:
 
@@ -540,7 +540,7 @@ public String obtenerSujeto(String token) {
 }
 ```
 
-El primer paso es verificar si el token que ingresa es nulo o vacío. Comprobado lo anterior, se sigue un proceso bastante parecido a la [validación del token](#validacion-del-token), solo que en este caso cuando obtenemos el payload, devolvemos el subject.
+El primer paso es verificar si el token que ingresa es nulo o vacío. Comprobado lo anterior, se sigue un proceso bastante parecido a la [Validación del Token](#validacion-del-token), solo que en este caso cuando obtenemos el payload, devolvemos el subject.
 
 ### Configuración de la clave secreta
 
