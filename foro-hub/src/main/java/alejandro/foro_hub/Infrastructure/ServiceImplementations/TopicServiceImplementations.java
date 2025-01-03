@@ -1,7 +1,6 @@
 package alejandro.foro_hub.Infrastructure.ServiceImplementations;
 
 import alejandro.foro_hub.Application.DTOs.TopicDTO;
-import alejandro.foro_hub.Application.DTOs.TopicShowDto;
 import alejandro.foro_hub.Application.Mappers.TopicMapper;
 import alejandro.foro_hub.Application.Services.TopicService;
 import alejandro.foro_hub.Application.Validators.Validador;
