@@ -540,7 +540,7 @@ public String obtenerSujeto(String token) {
 }
 ```
 
-El primer paso es verificar si el token que ingresa es nulo o vacío. Comprobado lo anterior, se sigue un proceso bastante parecido a la [Validación del Token](#validacion-del-token), solo que en este caso cuando obtenemos el payload, devolvemos el subject.
+El primer paso es verificar si el token que ingresa es nulo o vacío. Comprobado lo anterior, se sigue un proceso bastante parecido a la [Validación del Token](#validación-del-token), solo que en este caso cuando obtenemos el payload, devolvemos el subject.
 
 ### Configuración de la clave secreta
 
@@ -731,7 +731,7 @@ public void deleteTopic(Long id, Authentication authentication) throws Permissio
 
 ## Respuestas y cursos
 
-Estas entidades se caracterizan porque siguen un enfoque similar al del [Tópicos](#topicos), por lo cual, la lógica de trabajo aplicada es exactamente la misma. Se recomienda explorar bien cada archivo en caso de querer conocer la lógica de cada proceso.
+Estas entidades se caracterizan porque siguen un enfoque similar al de [Tópicos](#tópicos), por lo cual, la lógica de trabajo aplicada es exactamente la misma. Se recomienda explorar bien cada archivo en caso de querer conocer la lógica de cada proceso.
 
 ---
 
