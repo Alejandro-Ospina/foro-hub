@@ -17,7 +17,7 @@ Foro Hub Alura es una API desarrollada como parte de un reto formativo proporcio
 
 ---
 
-## Tecnologías Usadas
+## Tecnologías usadas
 
 El proyecto utiliza una serie de herramientas y tecnologías modernas para garantizar un desarrollo robusto y escalable:
 
@@ -513,13 +513,13 @@ public Boolean tokenValido(String token) {
 
 Lo primero que se debe hacer es verificar la firma del token, y para ello, pasamos en el argumento del método `verifyWith()` la clave con la cual hemos firmado nuestros tokens. Si no lanza una excepción, se construye un objeto vacío con los claims declarados en la construcción del token. Posteriormente se llena la información de los claims con el token recibido, y se obtiene el payload completo del token. Si hasta este punto no se ha lanzado una excepción, entonces se puede afirmar parcialmente que el token es confiable. 
 
-Para que nuestro token no sea parcialmente válido, debemos corroborar que no ha expirado, y solo es allí cuando podemos confiar en el origen del token. Es por ello que se necesita obtener los claims del token, ya que así podemos extraer la fecha de expiración y compararla con el instante en que se consulta. De esa forma, retornamos un valor verdaero; y, si en algún momento atrapa una excepción, entonces no podemos confiar en el origen del token.
+Para que nuestro token no sea parcialmente válido, debemos corroborar que no ha expirado, y solo es allí cuando podemos confiar en el origen del token. Es por ello que se necesita obtener los claims del token, ya que así podemos extraer la fecha de expiración y compararla con el instante en que se consulta. De esa forma, retornamos un valor verdadero; y, si en algún momento atrapa una excepción, entonces no podemos confiar en el origen del token.
 
 * **Nota:** Es importante aclarar que si bien, este proceso es básico, refleja una de muchas formas de trabajar con Jwt. Es importante que usted como lector verifique la documentación oficial de los proveedores, y haga su propia implementación de acuerdo a sus necesidades.
 
 ### Obtención del subject, o sujeto
 
-Cuando se estructura un jwt, es importante definir dinámicamenre aquello que se va a declarar como subject, o sujeto del token. En este caso, el subject definido es el correo electrónico de usuario, pues, además de ser único por usuario, es un estándar en el inicio de sesión en la gran mayoria de aplicaciones existentes.
+Cuando se estructura un jwt, es importante definir dinámicamenre aquello que se va a declarar como subject, o sujeto del token. En este caso, el subject definido es el correo electrónico del usuario, pues, además de ser único, es un estándar en el inicio de sesión en la gran mayoria de aplicaciones existentes.
 
 ```Java
 @Override
@@ -698,8 +698,9 @@ Para eliminar un tópico, se debe hacer una solicitud de tipo `DELETE` al endpoi
 
 ```Java
 @DeleteMapping("/{id}")
-public ResponseEntity<?> deleteRegister(@PathVariable @Positive Long id) {
-    topicService.deleteTopic(id);
+public ResponseEntity<?> deleteRegister(@PathVariable @Positive Long id,
+                                        Authentication authentication) throws PermissionDeniedException {
+    topicService.deleteTopic(id, authentication);
 
     return ResponseEntity.accepted().body(
             new ResponseEntityDto(
@@ -715,15 +716,22 @@ El controlador invoca el servicio para eliminar un registro con id específico d
 
 ```Java
 @Override
-public void deleteTopic(Long id) {
+public void deleteTopic(Long id, Authentication authentication) throws PermissionDeniedException {
     Topico topico = topicoRepository.findById(id).orElseThrow(
             () -> new EntityNotFoundException("No se ha encontrado tópico con id: " + id)
     );
+
+    if (!topico.getAutor().getUsername().equals(authentication.getName())){
+        throw new PermissionDeniedException("No tiene permisos para eliminar el topico");
+    }
 
     topicoRepository.delete(topico);
 }
 ```
 
+## Respuestas y cursos
+
+Estas entidades se caracterizan porque siguen un enfoque similar al del [Tópicos](#topicos), por lo cual, la lógica de trabajo aplicada es exactamente la misma. Se recomienda explorar bien cada archivo en caso de querer conocer la lógica de cada proceso.
 
 ---
 
@@ -733,16 +741,29 @@ public void deleteTopic(Long id) {
    ```bash
    mvn clean package
    ```
-2. Asegúrate de que las variables de entorno y la base de datos estén configuradas.
-3. Ejecuta el JAR generado:
+   * **Nota:** Debes estar dentro de la carpeta del proyecto para poder ejecutarlo.
+   
+3. Asegúrate de que las variables de entorno y la base de datos estén configuradas.
+4. Ejecuta el JAR generado:
    ```bash
    java -jar target/foro-hub-1.0.0.jar
    ```
+5. Abre la siguente url en una pestaña privada del navegador una vez hayas ejecutado en tu local
+   ```http
+   http://localhost:8080/foro-hub.html
+   ```
+   Esto deberá llevarte a la documentación de swagger para que puedas probar cada endpoint de la API.
+
+* **Nota:** Recuerda crear previamente la base de datos con el nombre dado, y configurar las variables de entorno. Si deseas, puedes configurar en tu `application.properties` los valores pedidos si no deseas establecer variables de entorno.
+
+### Extra
+
+Si bien, hubo muchas cosas por mejorar como modificar las respuestas que se devuelven cuando se crean registros de entidades en la base de datos; quiero pedir una disculpa pública por no anexar pantallazos de las respuestas de la API. En vista del tiempo que disponía para entregar el proyecto, quise hacer un readme corto, pero explicativo sobre las partes más importantes de la API: como la autenticación y la lógica para manipular registros de una entidad con los permisos adecuados. Pronto llegarán cambios en el readme, y asimismo, iré incorporando algunas mejoras como trabajo extracurricular. 
 
 ---
 
 ## Agradecimientos
 
-Agradezco a **Alura Latam** y **Oracle** por el reto formativo que permite a desarrolladores fortalecer sus habilidades y crecer profesionalmente. Este proyecto es un testimonio del impacto positivo que tienen estos desafíos en el desarrollo de software.
+Agradezco a **Alura Latam** y **Oracle** por el reto formativo que permite a desarrolladores fortalecer sus habilidades y crecer profesionalmente. Este proyecto es un testimonio del impacto positivo que tienen estos desafíos en el desarrollo de software. Este tiempo compartido fue de gran impacto para el desarrollo de habilidades técnicas y blandas. 
 
 
