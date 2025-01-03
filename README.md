@@ -9,12 +9,11 @@ Foro Hub Alura es una API desarrollada como parte de un reto formativo proporcio
 3. [Configuración de Variables de Entorno](#configuracion-de-variables-de-entorno)
 4. [Configuración de la Base de Datos PostgreSQL](#configuracion-de-la-base-de-datos-postgresql)
 5. [Dependencias Necesarias](#dependencias-necesarias)
-6. [Sección de Usuarios](#seccion-de-usuarios)
-7. [Sección de Cursos](#seccion-de-cursos)
-8. [Sección de Tópicos](#seccion-de-topicos)
-9. [Sección de Respuestas](#seccion-de-respuestas)
-10. [Ejecución del JAR en Local](#ejecucion-del-jar-en-local)
-11. [Agradecimientos](#agradecimientos)
+6. [Usuarios](#usuarios)
+7. [Tópicos](#topicos)
+8. [Respuestas y Cursos](#respuestas-y-cursos)
+9. [Ejecución del JAR en Local](#ejecucion-del-jar-en-local)
+10. [Agradecimientos](#agradecimientos)
 
 ---
 
@@ -286,7 +285,7 @@ Spring Devtools es una dependencia importante que nos proporciona visualización
 ```
 ---
 
-## Sección de Usuarios
+## Usuarios
 
 ### Crear Usuario
 
@@ -589,6 +588,139 @@ public void doFilter(ServletRequest servletRequest, ServletResponse servletRespo
         // Se crea un contexto de seguridad que carga de nuevo el usuario, y se sigue la solicitud
 
     filterChain.doFilter(servletRequest, servletResponse);
+}
+```
+
+## Tópicos
+
+### Crear tópico
+
+Para crear un tópico, se debe hacer debe enviar un json con el siguiente formato al siguiente endpoint:
+
+```http
+POST /topicos
+{
+    "titulo": "Eventos",
+    "mensaje": "Este tópico contiene contenido relacionado a eventos javascritp",
+    "fechaCreacion": "2024-12-26T16:20:00",
+    "status": "true",
+    "nombreCurso": "desarrollo backend con javascript"
+}
+```
+
+El siguiente método recibe la información necesaria para poder crear el tópico, en este caso: el json anterior, y el usuario autenticado.
+
+```Java
+@PostMapping
+public ResponseEntity<?> createRegister(@RequestBody @Valid TopicDTO dto, Authentication authentication) {
+    topicService.saveTopic(dto, authentication);
+
+    return ResponseEntity.ok(new ResponseEntityDto(
+            LocalDateTime.now(),
+            HttpStatus.OK.value(),
+            "Tópico creado correctamente."
+    ));
+}
+```
+
+El controlador invoca el servicio de tópicos, y guarda un tópico en la base de datos. El servicio encargado se verificar la existencia del curso con el nombre dado en el json, y luego hace un mapeo de los campos necesarios a un registro de la entidad tópico. Finalmente, se terminan de settear los parámetros de Autor y Curso con la instancia de autenticación (usuario de la solicitud), y el registro encontrado en la tabla de cursos respectivamente:
+
+```Java
+@Override
+public void saveTopic(TopicDTO topicDTO, Authentication authentication){
+    validador.forEach(
+            validar -> validar.validar(topicDTO)
+    );
+
+    Usuario usuario = (Usuario) authentication.getPrincipal();
+    Curso curso = cursoRepository.findByNombreIgnoreCase(topicDTO.nombreCurso()).orElseThrow();
+
+    Topico topico = mapper.dtoToEntity(topicDTO);
+    topico.setAutor(usuario);
+    topico.setCurso(curso);
+    topicoRepository.save(topico);
+}
+```
+
+### Actualizar tópico
+
+La actualización debe hacerse en el siguiente endpoint con el siguiente formato json:
+
+```http
+PUT /topicos/{id}
+{
+    "titulo": "Event listeners 2",
+    "mensaje": "Este tópico contiene contenido relacionado a event listeners 2 en javascritp",
+    "fechaCreacion": "2024-12-27T17:20:00",
+    "status": "true",
+    "nombreCurso": "desarrollo backend con javascript"
+}
+```
+
+Luego, el siguiente método recibe los parámetros para actualizar el curso, además del id del tópico y el usuario autenticado:
+
+```Java
+@PutMapping("/{id}")
+public ResponseEntity<?> updateRegister(@RequestBody @Valid TopicDTO dto,
+                                        @PathVariable @Positive Long id,
+                                        Authentication authentication) throws PermissionDeniedException {
+    topicService.updateTopic(dto, id, authentication);
+
+    return ResponseEntity.ok(new ResponseEntityDto(
+            LocalDateTime.now(),
+            HttpStatus.OK.value(),
+            "Tópico actualizado correctamente."
+    ));
+}
+```
+
+Posteriormente, se invoca el servicio, donde se evalua en primer lugar si existe el tópico con el id dado. Después, se verifica si el autor del tópico corresponde con el usuario que está autenticado. En caso de no coincidir el usuario, se le denegarán los permisos de edición, pues no se puede editar un recurso que no es de autoría propia. Finalmente, se mappean los datos necesarios, y se settean los valores del registro a actualizar.
+
+```Java
+@Override
+@Transactional
+public void updateTopic(TopicDTO topicDTO, Long id, Authentication authentication) throws PermissionDeniedException {
+    Topico topico = topicoRepository.findById(id).orElseThrow(
+            () -> new EntityNotFoundException("No se ha encontrado tópico con id: " + id)
+    );
+
+    if (!topico.getAutor().getUsername().equals(authentication.getName())){
+        throw new PermissionDeniedException("No tiene permisos para editar el topico");
+    }
+
+    mapper.updateEntityFromDto(topicDTO, topico);
+}
+```
+
+### Eliminar tópico
+
+Para eliminar un tópico, se debe hacer una solicitud de tipo `DELETE` al endpoint `/topicos/{id}`.
+
+```Java
+@DeleteMapping("/{id}")
+public ResponseEntity<?> deleteRegister(@PathVariable @Positive Long id) {
+    topicService.deleteTopic(id);
+
+    return ResponseEntity.accepted().body(
+            new ResponseEntityDto(
+                    LocalDateTime.now(),
+                    HttpStatus.ACCEPTED.value(),
+                    "Tópico eliminado correctamente."
+            )
+    );
+}
+```
+
+El controlador invoca el servicio para eliminar un registro con id específico de la base de datos; sin embargo, antes de eliminar, el servicio corrobora si existe el tópico, y si el usuario que está autenticado es el autor del tópico. Al igual que el caso anterior, no se puede eliminar o editar un elemento que no es de autoría propia.
+
+```Java
+@Override
+public void deleteTopic(Long id) {
+    Topico topico = topicoRepository.findById(id).orElseThrow(
+            () -> new EntityNotFoundException("No se ha encontrado tópico con id: " + id)
+    );
+
+    topicoRepository.delete(topico);
 }
 ```
 
