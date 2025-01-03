@@ -758,7 +758,9 @@ Estas entidades se caracterizan porque siguen un enfoque similar al de [Tópicos
 
 ### Extra
 
-Si bien, hubo muchas cosas por mejorar como modificar las respuestas que se devuelven cuando se crean registros de entidades en la base de datos; quiero pedir una disculpa pública por no anexar pantallazos de las respuestas de la API. En vista del tiempo que disponía para entregar el proyecto, quise hacer un readme corto, pero explicativo sobre las partes más importantes de la API: como la autenticación y la lógica para manipular registros de una entidad con los permisos adecuados. Pronto llegarán cambios en el readme, y asimismo, iré incorporando algunas mejoras como trabajo extracurricular. 
+Si bien, hubo cosas por mejorar como la modificación de respuestas cuando se crean registros de entidades en la base de datos; quiero pedir especialmente una disculpa pública por no anexar pantallazos de las respuestas de la API. En vista del tiempo que disponía para entregar el proyecto, quise hacer un readme corto, pero explicativo sobre las partes más importantes de la API: como la autenticación y la lógica para manipular registros de una entidad con los permisos adecuados. Pronto llegarán cambios en el readme, y asimismo, iré incorporando algunas mejoras como trabajo extracurricular. 
+
+Por lo anterior, mi invitación es que puedan ejecutar la API, probar cada endpoint, y en caso de, dejar un feedback en mi [LinkedIN](www.linkedin.com/in/alejandro-ospina-castanio) y agregarme, o en mi cuenta de github. Me haría más que feliz saber que mi proyecto está siendo puesto a prueba, y que está siendo visto. Estaré más que dispuesto a dialogar sobre lo que convenga en cuanto al proyecto.
 
 ---
 
