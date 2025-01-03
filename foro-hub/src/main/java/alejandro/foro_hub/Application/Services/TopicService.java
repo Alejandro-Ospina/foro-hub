@@ -8,5 +8,5 @@ public interface TopicService {
 
     void saveTopic(TopicDTO topicDTO, Authentication authentication);
     void updateTopic(TopicDTO topicDTO, Long id, Authentication authentication) throws PermissionDeniedException;
-    void deleteTopic(Long id);
+    void deleteTopic(Long id, Authentication authentication) throws PermissionDeniedException;
 }

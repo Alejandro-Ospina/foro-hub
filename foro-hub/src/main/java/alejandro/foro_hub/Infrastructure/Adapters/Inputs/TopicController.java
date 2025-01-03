@@ -41,8 +41,9 @@ public class TopicController {
 
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteRegister(@PathVariable @Positive Long id) {
-        topicService.deleteTopic(id);
+    public ResponseEntity<?> deleteRegister(@PathVariable @Positive Long id,
+                                            Authentication authentication) throws PermissionDeniedException {
+        topicService.deleteTopic(id, authentication);
 
         return ResponseEntity.accepted().body(
                 new ResponseEntityDto(

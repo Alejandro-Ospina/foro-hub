@@ -14,8 +14,6 @@ import alejandro.foro_hub.Domain.Repositories.TopicoRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.Hibernate;
-import org.springframework.dao.PermissionDeniedDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
@@ -60,10 +58,14 @@ public class TopicServiceImplementations implements TopicService {
     }
 
     @Override
-    public void deleteTopic(Long id) {
+    public void deleteTopic(Long id, Authentication authentication) throws PermissionDeniedException {
         Topico topico = topicoRepository.findById(id).orElseThrow(
                 () -> new EntityNotFoundException("No se ha encontrado tópico con id: " + id)
         );
+
+        if (!topico.getAutor().getUsername().equals(authentication.getName())){
+            throw new PermissionDeniedException("No tiene permisos para editar el topico");
+        }
 
         topicoRepository.delete(topico);
     }
