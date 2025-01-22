@@ -6,6 +6,7 @@ import alejandro.foro_hub.Domain.Exceptions.TokenNullException;
 import alejandro.foro_hub.Domain.Models.Usuario;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.util.Date;
 
 @Service
+@RequiredArgsConstructor
 public class JwtServiceImplementations implements JwtService {
 
     @Value("${jwt.secret.key}")

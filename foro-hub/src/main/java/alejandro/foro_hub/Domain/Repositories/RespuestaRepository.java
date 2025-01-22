@@ -14,7 +14,7 @@ public interface RespuestaRepository extends JpaRepository<Respuesta, Long> {
     @Query("""
             SELECT r
             FROM Respuesta r
-            WHERE r.autor.email = :email
+            WHERE r.autor.id = :id
             """)
-    Page<Respuesta> userAnswersList(@Param("email") String email, Pageable pageable);
+    Page<Respuesta> userAnswersList(@Param("id") Long id, Pageable pageable);
 }

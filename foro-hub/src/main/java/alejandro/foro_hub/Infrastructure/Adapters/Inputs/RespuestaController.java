@@ -5,8 +5,9 @@ import alejandro.foro_hub.Application.DTOs.RespuestaDto;
 import alejandro.foro_hub.Application.DTOs.RespuestaShowDto;
 import alejandro.foro_hub.Application.DTOs.RespuestaUpdateDto;
 import alejandro.foro_hub.Application.Services.RespuestaService;
+import alejandro.foro_hub.Application.Validators.AuthenticationValidator;
 import alejandro.foro_hub.Domain.Exceptions.PermissionDeniedException;
-import alejandro.foro_hub.Domain.Models.Usuario;
+import alejandro.foro_hub.Domain.Models.UsuarioBase;
 import alejandro.foro_hub.Domain.Repositories.RespuestaRepository;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -29,6 +30,7 @@ public class RespuestaController {
 
     private final RespuestaService respuestaService;
     private final RespuestaRepository respuestaRepository;
+    private final AuthenticationValidator<Object> authenticationValidator;
 
     @PostMapping
     public ResponseEntity<?> createAnswer(@RequestBody @Valid RespuestaDto respuestaDto, Authentication authentication){
@@ -69,9 +71,9 @@ public class RespuestaController {
     @GetMapping
     public ResponseEntity<?> getUserAnswersList(@PageableDefault(size = 10, sort = "id") Pageable pageable,
                                                 Authentication authentication){
-        Usuario usuario = (Usuario) authentication.getPrincipal();
+        UsuarioBase userAuthenticated = (UsuarioBase) authenticationValidator.getAuthenticationInstance(authentication);
         return ResponseEntity.ok(
-                respuestaRepository.userAnswersList(usuario.getEmail(), pageable)
+                respuestaRepository.userAnswersList(userAuthenticated.getId(), pageable)
                         .map(RespuestaShowDto::new)
         );
     }

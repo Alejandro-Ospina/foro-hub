@@ -16,15 +16,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode (of = "id")
-public class Usuario implements UserDetails {
-
-    @Id
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String nombre;
-    private String email;
+public class Usuario extends UsuarioBase implements UserDetails {
 
     @Column (name = "password")
     private String pass;

@@ -1,7 +1,9 @@
 package alejandro.foro_hub.Infrastructure.Security;
 
 import alejandro.foro_hub.Application.DTOs.ResponseEntityDto;
+import alejandro.foro_hub.Application.Services.OAuthService;
 import alejandro.foro_hub.Infrastructure.Filter.AuthenticationFilter;
+import alejandro.foro_hub.Infrastructure.ServiceImplementations.CustomOAuthAuthorizationResolver;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -21,6 +23,7 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -33,6 +36,8 @@ import java.time.LocalDateTime;
 public class SecurityConfig{
 
     private final AuthenticationFilter filter;
+    private final ClientRegistrationRepository clientRegistrationRepository;
+    private final OAuthService oAuthService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
@@ -45,7 +50,8 @@ public class SecurityConfig{
                                         "/foro-hub.html",
                                         "/v1/foro-hub/**",
                                         "/swagger-ui/**",
-                                        "/api/docs/**"
+                                        "/api/docs/**",
+                                        "/oauth/**"
                                 ).permitAll()
                                 .anyRequest().authenticated()
                 )
@@ -62,6 +68,7 @@ public class SecurityConfig{
                 )
                 .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 
+        oAuthConfiguration(http);
         configureExceptionHandling(http);
         return http.build();
     }
@@ -95,7 +102,8 @@ public class SecurityConfig{
                                 response.setContentType("application/json");
                                 response.getWriter().write(interceptorSecurityExceptionMessage(
                                         response.getStatus(),
-                                        "Usuario no autenticado. Inicie sesión primero."
+                                        "Usuario no autenticado o activo. Verifique si está activo o " +
+                                                "inicie sesión nuevamente."
                                 ));
                             });
                 }
@@ -108,4 +116,32 @@ public class SecurityConfig{
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .writeValueAsString(new ResponseEntityDto(LocalDateTime.now(), status, message));
     }
+
+    private void oAuthConfiguration(HttpSecurity http) throws Exception {
+        http.oauth2Login(
+                oauth ->
+                        oauth.authorizationEndpoint(autorization ->
+                                        autorization.authorizationRequestResolver(
+                                                customOAuthAuthorizationResolver(
+                                                        clientRegistrationRepository,
+                                                        oAuthService
+                                                )
+                                        ))
+                                .redirectionEndpoint(redirect ->
+                                        redirect.baseUri("/oauth/user/authorize/*"))
+                                .clientRegistrationRepository(clientRegistrationRepository)
+        );
+    }
+
+    @Bean
+    public CustomOAuthAuthorizationResolver customOAuthAuthorizationResolver(
+            ClientRegistrationRepository repository,
+            OAuthService oAuthService){
+        return new CustomOAuthAuthorizationResolver(
+                clientRegistrationRepository,
+                "/oauth/login",
+                oAuthService
+        );
+    }
+
 }

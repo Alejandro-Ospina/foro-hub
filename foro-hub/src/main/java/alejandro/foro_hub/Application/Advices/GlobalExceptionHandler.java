@@ -111,4 +111,24 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
+
+    @ExceptionHandler (OAuthStateException.class)
+    public ResponseEntity<?> handleOAuthStateException(OAuthStateException e){
+        ResponseEntityDto response = new ResponseEntityDto(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                e.getMessage()
+        );
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException e){
+        ResponseEntityDto response = new ResponseEntityDto(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                e.getMessage()
+        );
+        return ResponseEntity.badRequest().body(response);
+    }
 }

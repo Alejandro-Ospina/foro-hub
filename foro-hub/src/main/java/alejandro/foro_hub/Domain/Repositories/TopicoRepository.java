@@ -18,7 +18,6 @@ public interface TopicoRepository extends JpaRepository<Topico, Long> {
             FROM Topico t
             JOIN FETCH t.autor
             JOIN FETCH t.curso
-            WHERE t.autor.activo = TRUE
             """)
     List<Topico> findAllTopicsWithDetails();
 

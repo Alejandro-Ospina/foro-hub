@@ -3,11 +3,10 @@ package alejandro.foro_hub.Infrastructure.ServiceImplementations;
 import alejandro.foro_hub.Application.DTOs.TopicDTO;
 import alejandro.foro_hub.Application.Mappers.TopicMapper;
 import alejandro.foro_hub.Application.Services.TopicService;
+import alejandro.foro_hub.Application.Validators.AuthenticationValidator;
 import alejandro.foro_hub.Application.Validators.Validador;
 import alejandro.foro_hub.Domain.Exceptions.PermissionDeniedException;
-import alejandro.foro_hub.Domain.Models.Curso;
-import alejandro.foro_hub.Domain.Models.Topico;
-import alejandro.foro_hub.Domain.Models.Usuario;
+import alejandro.foro_hub.Domain.Models.*;
 import alejandro.foro_hub.Domain.Repositories.CursoRepository;
 import alejandro.foro_hub.Domain.Repositories.TopicoRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -17,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +26,7 @@ public class TopicServiceImplementations implements TopicService {
     private final TopicoRepository topicoRepository;
     private final TopicMapper mapper;
     private final CursoRepository cursoRepository;
+    private final AuthenticationValidator<Object> authenticationValidator;
 
     @Override
     public void saveTopic(TopicDTO topicDTO, Authentication authentication){
@@ -33,12 +34,14 @@ public class TopicServiceImplementations implements TopicService {
                 validar -> validar.validar(topicDTO)
         );
 
-        Usuario usuario = (Usuario) authentication.getPrincipal();
+        var userAuthenticated = authenticationValidator.getAuthenticationInstance(authentication);
         Curso curso = cursoRepository.findByNombreIgnoreCase(topicDTO.nombreCurso()).orElseThrow();
-
         Topico topico = mapper.dtoToEntity(topicDTO);
-        topico.setAutor(usuario);
         topico.setCurso(curso);
+
+        if (userAuthenticated instanceof Usuario localUser) topico.setAutor(localUser);
+        if (userAuthenticated instanceof GoogleUser googleUser) topico.setAutor(googleUser);
+
         topicoRepository.save(topico);
     }
 
@@ -49,9 +52,8 @@ public class TopicServiceImplementations implements TopicService {
                 () -> new EntityNotFoundException("No se ha encontrado tópico con id: " + id)
         );
 
-        if (!topico.getAutor().getUsername().equals(authentication.getName())){
-            throw new PermissionDeniedException("No tiene permisos para editar el topico");
-        }
+        var usuario = topico.getAutor();
+        validateUser(usuario, authentication);
 
         mapper.updateEntityFromDto(topicDTO, topico);
     }
@@ -62,10 +64,21 @@ public class TopicServiceImplementations implements TopicService {
                 () -> new EntityNotFoundException("No se ha encontrado tópico con id: " + id)
         );
 
-        if (!topico.getAutor().getUsername().equals(authentication.getName())){
-            throw new PermissionDeniedException("No tiene permisos para editar el topico");
-        }
+        var usuario = topico.getAutor();
+        validateUser(usuario, authentication);
 
         topicoRepository.delete(topico);
+    }
+
+    private void validateUser(UsuarioBase usuario, Authentication authentication) throws PermissionDeniedException {
+        var userAuthenticated = authenticationValidator.getAuthenticationInstance(authentication);
+        if (userAuthenticated instanceof Usuario localUser &&
+                !Objects.equals(localUser.getId(), usuario.getId()))
+            throw new PermissionDeniedException("No tiene permisos para editar el topico");
+
+        if (userAuthenticated instanceof GoogleUser googleUser &&
+                !Objects.equals(googleUser.getId(), usuario.getId())){
+            throw new PermissionDeniedException("No tiene permisos para editar el tópico.");
+        }
     }
 }

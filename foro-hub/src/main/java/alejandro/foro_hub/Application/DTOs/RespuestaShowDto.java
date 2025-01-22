@@ -30,7 +30,7 @@ public record RespuestaShowDto(
         return topico.getRespuestas().stream()
                 .map(respuesta -> new RespuestaShowDto(
                         respuesta.getId(),
-                        respuesta.getAutor().getUsername(),
+                        respuesta.getAutor().getNombre(),
                         respuesta.getAutor().getEmail(),
                         respuesta.getMensaje(),
                         respuesta.getFechaCreacion(),

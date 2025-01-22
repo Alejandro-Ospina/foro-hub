@@ -34,9 +34,10 @@ public class Topico {
     @ManyToOne (fetch = FetchType.LAZY)
     @JoinColumn (
             name = "usuario_id",
-            nullable = false
+            nullable = false,
+            referencedColumnName = "id"
     )
-    private Usuario autor;
+    private UsuarioBase autor;
 
     @ManyToOne (fetch = FetchType.LAZY)
     @JoinColumn (
