@@ -54,8 +54,6 @@ public class JwtServiceImplementations implements JwtService {
     @Override
     public String obtenerSujeto(String token) {
         if(token == null || token.isEmpty()) throw new TokenNullException("El token es vacío o nulo.");
-
-        String sujeto;
         try{
             return Jwts.parser()
                     .verifyWith(getKeyEncoded())
